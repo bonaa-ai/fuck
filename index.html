@@ -1,0 +1,47 @@
+```html
+<!-- public/share.html
+  Page that the SMS recipient visits. It asks for geolocation permission
+  and posts coordinates to the server. Use only with explicit consent.
+-->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Bagikan Lokasi</title>
+</head>
+<body>
+  <h1>Permintaan Berbagi Lokasi</h1>
+  <p>Anda diminta untuk membagikan lokasi Anda. Lokasi hanya akan dikirim jika Anda mengizinkan.</p>
+  <button id="btn">Bagikan Lokasi Sekarang</button>
+  <p id="status"></p>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+
+    document.getElementById('btn').addEventListener('click', () => {
+      if (!token) { document.getElementById('status').innerText = 'Token tidak ditemukan.'; return; }
+      if (!navigator.geolocation) { document.getElementById('status').innerText = 'Geolocation tidak didukung di browser ini.'; return; }
+
+      document.getElementById('status').innerText = 'Meminta izin lokasi...';
+      navigator.geolocation.getCurrentPosition(position => {
+        const data = {
+          token,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        fetch('/api/submit-location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        }).then(r => r.json()).then(j => {
+          if (j.ok) document.getElementById('status').innerText = 'Lokasi berhasil dibagikan. Terima kasih.';
+          else document.getElementById('status').innerText = 'Gagal: ' + (j.error || JSON.stringify(j));
+        }).catch(err => document.getElementById('status').innerText = 'Error: ' + err);
+      }, err => {
+        document.getElementById('status').innerText = 'Izin ditolak atau gagal mendapatkan lokasi.';
+      });
+    });
+  </script>
+</body>
+</html>
